@@ -1,0 +1,396 @@
+@model IEnumerable<SchoolEventManagement.Models.Event>
+
+@{
+    ViewData["Title"] = "Events";
+    bool isAdmin = ViewBag.IsAdmin ?? false;
+    var regCounts = ViewBag.RegCounts as Dictionary<int, int> ?? new Dictionary<int, int>();
+    int totalRegistrations = (int)(ViewBag.TotalRegistrations ?? 0);
+
+    int totalEvents = Model.Count();
+    // FIXED: Use EndDateTime so events stay open until their actual end time passes
+    int openEvents = Model.Count(e => e.EndDateTime >= DateTime.Now);
+    int endedEvents = totalEvents - openEvents;
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert" style="border-radius: 12px;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["NoticeMessage"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4" role="alert" style="border-radius: 12px; background-color: #f7eae3; color: #5c3a21; border-color: #e6d0c5;">
+        <i class="bi bi-info-circle-fill me-2"></i> @TempData["NoticeMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div>
+        <h3>Events</h3>
+        <div class="subtitle">Browse, register for, and manage school events.</div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        @if (isAdmin)
+        {
+            <a asp-action="Create" class="btn btn-gold">
+                <i class="bi bi-plus-lg me-1"></i>Create new event
+            </a>
+            <a asp-action="AdminLogout" class="btn btn-outline-danger btn-sm">Admin logout</a>
+        }
+        else
+        {
+            <a asp-action="AdminLogin" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-shield-lock me-1"></i>Admin login
+            </a>
+        }
+    </div>
+</div>
+
+<!-- SUMMARY STRIP -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-calendar3"></i></div>
+            <div><div class="stat-label">Total events</div><div class="stat-value">@totalEvents</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon teal"><i class="bi bi-unlock"></i></div>
+            <div><div class="stat-label">Open for registration</div><div class="stat-value">@openEvents</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon gray"><i class="bi bi-archive"></i></div>
+            <div><div class="stat-label">Ended</div><div class="stat-value">@endedEvents</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="bi bi-people"></i></div>
+            <div><div class="stat-label">Total registrations</div><div class="stat-value">@totalRegistrations</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="events-toolbar">
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="eventSearch" class="form-control form-control-sm" placeholder="Search events" />
+    </div>
+
+    <div class="filter-chips" id="filterChips">
+        <button type="button" class="chip active" data-filter="all">All <span>@totalEvents</span></button>
+        <button type="button" class="chip" data-filter="open">Open <span>@openEvents</span></button>
+        <button type="button" class="chip" data-filter="ended">Ended <span>@endedEvents</span></button>
+    </div>
+
+    <div class="toolbar-right">
+        <select id="eventSort" class="form-select form-select-sm" aria-label="Sort events">
+            <option value="date-asc">Soonest first</option>
+            <option value="date-desc">Latest first</option>
+            <option value="title">Title A-Z</option>
+        </select>
+        <div class="btn-group view-toggle" role="group" aria-label="View">
+            <button type="button" class="btn btn-sm active" id="viewGrid" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
+            <button type="button" class="btn btn-sm" id="viewList" title="List view"><i class="bi bi-list-ul"></i></button>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <!-- EMPTY STATE -->
+    <div class="card shadow-sm mb-4">
+        <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-calendar-plus"></i></div>
+            <h5 class="fw-semibold mb-1">No events yet</h5>
+            @if (isAdmin)
+            {
+                <p class="text-muted mb-3">Create your first event and students can start registering right away.</p>
+                <a asp-action="Create" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i>Create new event</a>
+            }
+            else
+            {
+                <p class="text-muted mb-3">There are no events open right now. Check back soon, or log in as admin to create one.</p>
+                <a asp-action="AdminLogin" class="btn btn-outline-secondary btn-sm"><i class="bi bi-shield-lock me-1"></i>Admin login</a>
+            }
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header-plain"><span><i class="bi bi-signpost-split"></i>How it works</span></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="step-tile">
+                        <div class="step-num">1</div>
+                        <div class="fw-semibold">Pick an event</div>
+                        <div class="small text-muted">Browse upcoming school events and their venues.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-tile">
+                        <div class="step-num">2</div>
+                        <div class="fw-semibold">Register and get a QR ticket</div>
+                        <div class="small text-muted">Enter your student ID and school details to receive your ticket.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="step-tile">
+                        <div class="step-num">3</div>
+                        <div class="fw-semibold">Attend and evaluate</div>
+                        <div class="small text-muted">Show your QR at the door, then share your feedback afterwards.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- EVENT CARDS -->
+    <div class="event-grid" id="eventGrid">
+        @foreach (var item in Model)
+        {
+            // FIXED: Use EndDateTime to determine if the event is still open
+            bool isOpen = item.EndDateTime >= DateTime.Now;
+            int regs = regCounts.ContainsKey(item.Id) ? regCounts[item.Id] : 0;
+            <div class="event-col"
+                 data-search="@((item.Title + " " + item.Venue + " " + item.Description).ToLower())"
+                 data-status="@(isOpen ? "open" : "ended")"
+                 data-date="@item.EventDate.Ticks"
+                 data-title="@item.Title.ToLower()">
+                <div class="event-card @(isOpen ? "" : "is-ended")">
+                    <div class="event-top">
+                        <div class="date-chip">
+                            <span class="mo">@item.EventDate.ToString("MMM")</span>
+                            <span class="dy">@item.EventDate.ToString("dd")</span>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="event-title">@item.Title</div>
+                            <span class="badge @(isOpen ? "badge-open" : "badge-ended")">@(isOpen ? "Open" : "Ended")</span>
+                        </div>
+                        @if (isAdmin)
+                        {
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-kebab" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Manage event">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id"><i class="bi bi-pencil"></i>Edit</a></li>
+                                    <li><a class="dropdown-item" asp-action="Details" asp-route-id="@item.Id"><i class="bi bi-eye"></i>Details</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Attendance" asp-action="Report" asp-route-eventId="@item.Id"><i class="bi bi-clipboard-check"></i>Attendance report</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Evaluations" asp-action="Summary" asp-route-eventId="@item.Id"><i class="bi bi-bar-chart"></i>Evaluation report</a></li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@item.Id"><i class="bi bi-trash"></i>Delete</a></li>
+                                </ul>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="event-body">
+                        @if (!string.IsNullOrWhiteSpace(item.Description))
+                        {
+                            <div class="event-desc">@item.Description</div>
+                        }
+                        <div class="event-meta"><i class="bi bi-clock"></i>@item.EventDate.ToString("dddd, h:mm tt") - @item.EndDateTime.ToString("h:mm tt")</div>
+                        <div class="event-meta"><i class="bi bi-geo-alt"></i>@item.Venue</div>
+                        <div class="event-meta"><i class="bi bi-people"></i>@regs registered</div>
+                        <div class="event-meta"><i class="bi bi-mortarboard"></i>For: @(item.TargetSchoolLevel == "All" ? "All school levels" : item.TargetSchoolLevel)@(string.IsNullOrWhiteSpace(item.TargetGradeLevel) ? "" : " · " + item.TargetGradeLevel)@(string.IsNullOrWhiteSpace(item.TargetProgram) ? "" : " · " + item.TargetProgram)@(string.IsNullOrWhiteSpace(item.TargetSection) ? "" : " · " + item.TargetSection)</div>
+                    </div>
+
+                    <div class="event-actions">
+                        @if (isOpen)
+                        {
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal-@item.Id">
+                                <i class="bi bi-ticket-perforated me-1"></i>Register
+                            </button>
+                        }
+                        <a asp-controller="Evaluations" asp-action="Access" class="btn btn-outline-teal btn-sm">Evaluate</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div id="noResults" class="card shadow-sm d-none">
+        <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-search"></i></div>
+            <h6 class="fw-semibold mb-1">No matching events</h6>
+            <p class="text-muted mb-0">Try a different search or switch the filter back to All.</p>
+        </div>
+    </div>
+}
+
+<!-- REGISTRATION MODALS -->
+@if (Model != null && Model.Any())
+{
+    @foreach (var item in Model)
+    {
+        <div class="modal fade" id="registerModal-@item.Id" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header modal-header-brand">
+                        <h5 class="modal-title"><i class="bi bi-ticket-perforated me-2"></i>Event registration</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form asp-controller="Events" asp-action="Register" method="post">
+                        <div class="modal-body text-start">
+                            <input type="hidden" name="eventId" value="@item.Id" />
+                            <p class="mb-3">Registering for: <strong>@item.Title</strong></p>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Student ID number</label>
+                                <input type="text" name="studentId" class="form-control" placeholder="e.g. 2026-1042" maxlength="50" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Full name</label>
+                                <input type="text" name="studentName" class="form-control" placeholder="e.g. Alex Smith" maxlength="100" required />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">School level</label>
+                                <select name="schoolLevel" class="form-select registration-level" required>
+                                    <option value="">Select school level</option><option value="College">College</option><option value="SHS">Senior High School (SHS)</option><option value="JHS">Junior High School (JHS)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 registration-grade-wrap d-none">
+                                <label class="form-label fw-semibold registration-grade-label">Grade level</label>
+                                <select name="gradeLevel" class="form-select registration-grade">
+                                    <option value="">Select grade level</option>
+                                    <option value="Grade 7">Grade 7</option><option value="Grade 8">Grade 8</option><option value="Grade 9">Grade 9</option><option value="Grade 10">Grade 10</option>
+                                    <option value="Grade 11">Grade 11</option><option value="Grade 12">Grade 12</option>
+                                    <option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option><option value="4th Year">4th Year</option><option value="5th Year">5th Year</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 registration-program-wrap d-none">
+                                <label class="form-label fw-semibold registration-program-label">Course / Program / Strand</label>
+                                <input type="text" name="course" class="form-control registration-program" placeholder="e.g. BSIT, ICT, STEM" maxlength="100" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Section</label>
+                                <input type="text" name="section" class="form-control" placeholder="e.g. ICT 11-A or 31E1" maxlength="50" required />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary fw-semibold">Get ticket and QR code</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<script>
+    document.querySelectorAll('.modal').forEach(function (modal) {
+        const level = modal.querySelector('.registration-level');
+        if (!level) return;
+        const gradeWrap = modal.querySelector('.registration-grade-wrap');
+        const grade = modal.querySelector('.registration-grade');
+        const programWrap = modal.querySelector('.registration-program-wrap');
+        const program = modal.querySelector('.registration-program');
+        const programLabel = modal.querySelector('.registration-program-label');
+        function updateStudentFields() {
+            const value = level.value;
+            const needsGrade = value === 'SHS' || value === 'JHS' || value === 'College';
+            gradeWrap.classList.toggle('d-none', !needsGrade);
+            grade.required = needsGrade;
+            const gradeLabelText = value === 'College' ? 'Year level' : 'Grade level';
+            modal.querySelector('.registration-grade-label').textContent = gradeLabelText;
+            Array.from(grade.options).forEach(function (option) {
+                if (!option.value) return;
+                const isCollege = ['1st Year','2nd Year','3rd Year','4th Year','5th Year'].includes(option.value);
+                const isSHS = ['Grade 11','Grade 12'].includes(option.value);
+                const isJHS = ['Grade 7','Grade 8','Grade 9','Grade 10'].includes(option.value);
+                option.hidden = !(value === 'College' ? isCollege : value === 'SHS' ? isSHS : value === 'JHS' ? isJHS : true);
+            });
+            if (grade.selectedOptions.length && grade.selectedOptions[0].hidden) grade.value = '';
+            const needsProgram = value === 'College' || value === 'SHS';
+            programWrap.classList.toggle('d-none', !needsProgram);
+            program.required = needsProgram;
+            programLabel.textContent = value === 'SHS' ? 'Strand / Program (e.g. ICT, STEM)' : 'College Course / Program';
+            if (!needsProgram) program.value = '';
+            if (!needsGrade) grade.value = '';
+        }
+        level.addEventListener('change', updateStudentFields);
+        updateStudentFields();
+    });
+</script>
+
+<script>
+    (function () {
+        var grid = document.getElementById('eventGrid');
+        if (!grid) return;
+
+        var cols = Array.prototype.slice.call(grid.querySelectorAll('.event-col'));
+        var state = { term: '', filter: 'all', sort: 'date-asc' };
+
+        function apply() {
+            var visible = 0;
+            cols.forEach(function (c) {
+                var okSearch = c.dataset.search.indexOf(state.term) !== -1;
+                var okFilter = state.filter === 'all' || c.dataset.status === state.filter;
+                var show = okSearch && okFilter;
+                c.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            document.getElementById('noResults').classList.toggle('d-none', visible > 0);
+        }
+
+        function sortCards() {
+            cols.sort(function (a, b) {
+                if (state.sort === 'title') return a.dataset.title.localeCompare(b.dataset.title);
+                var diff = Number(a.dataset.date) - Number(b.dataset.date);
+                return state.sort === 'date-desc' ? -diff : diff;
+            });
+            cols.forEach(function (c) { grid.appendChild(c); });
+        }
+
+        document.getElementById('eventSearch').addEventListener('input', function () {
+            state.term = this.value.trim().toLowerCase();
+            apply();
+        });
+
+        document.getElementById('filterChips').addEventListener('click', function (e) {
+            var btn = e.target.closest('.chip');
+            if (!btn) return;
+            this.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+            btn.classList.add('active');
+            state.filter = btn.dataset.filter;
+            apply();
+        });
+
+        document.getElementById('eventSort').addEventListener('change', function () {
+            state.sort = this.value;
+            sortCards();
+        });
+
+        var gridBtn = document.getElementById('viewGrid');
+        var listBtn = document.getElementById('viewList');
+        gridBtn.addEventListener('click', function () {
+            grid.classList.remove('list-view');
+            gridBtn.classList.add('active'); listBtn.classList.remove('active');
+        });
+        listBtn.addEventListener('click', function () {
+            grid.classList.add('list-view');
+            listBtn.classList.add('active'); gridBtn.classList.remove('active');
+        });
+    })();
+</script>

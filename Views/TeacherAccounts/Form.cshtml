@@ -1,0 +1,61 @@
+@model SchoolEventManagement.Models.TeacherFormViewModel
+
+@{
+    bool isEdit = ViewBag.IsEdit == true;
+    ViewData["Title"] = isEdit ? "Edit Teacher" : "Add Teacher";
+}
+
+<div class="container" style="max-width: 560px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white py-3">
+            <h4 class="mb-0 fw-bold">@(isEdit ? "Edit teacher" : "Add teacher")</h4>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? Model.Id : (int?)null)" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label fw-bold"></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label fw-bold"></label>
+                    @if (isEdit)
+                    {
+                        <input asp-for="Username" class="form-control" readonly />
+                    }
+                    else
+                    {
+                        <input asp-for="Username" class="form-control" />
+                    }
+                    <span asp-validation-for="Username" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Password" class="form-label fw-bold">@(isEdit ? "New password (leave blank to keep)" : "Password")</label>
+                    <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CoursesText" class="form-label fw-bold"></label>
+                    <textarea asp-for="CoursesText" class="form-control" rows="4" placeholder="One course per line, e.g.&#10;BSIT&#10;BSCS"></textarea>
+                    <div class="form-text">
+                        Must match the Course that students type when they register (capitalization does not matter).
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary fw-bold">Save</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

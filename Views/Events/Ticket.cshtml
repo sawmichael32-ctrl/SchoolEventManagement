@@ -1,0 +1,71 @@
+@model SchoolEventManagement.Models.Registration
+
+@{
+    ViewData["Title"] = "Registration Pass";
+}
+
+<div class="container mt-5 mb-5 d-flex justify-content-center">
+    <div class="card shadow-lg border-0" style="max-width: 450px; width: 100%; border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h3 class="mb-0 fw-bold">@Model.Event?.Title</h3>
+            <small class="text-white-50">Registration Pass</small>
+        </div>
+
+        <div class="card-body p-4">
+            <div class="mb-3">
+                <p class="mb-1"><strong>Venue:</strong> @Model.Event?.Venue</p>
+                <p class="mb-1"><strong>Date &amp; Time:</strong> @Model.Event?.EventDate.ToString("f")</p>
+                <p class="mb-1"><strong>Student ID:</strong> @Model.UserId</p>
+                <p class="mb-1"><strong>Name:</strong> @Model.StudentName</p>
+                <p class="mb-1"><strong>School Level:</strong> @Model.SchoolLevel</p>
+                @if (!string.IsNullOrWhiteSpace(Model.GradeLevel))
+                {
+                    <p class="mb-1"><strong>Grade / Year:</strong> @Model.GradeLevel</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.Course))
+                {
+                    <p class="mb-1"><strong>Course / Program / Strand:</strong> @Model.Course</p>
+                }
+                <p class="mb-1"><strong>Section:</strong> @Model.Section</p>
+                <p class="mb-0"><strong>Registered On:</strong> @Model.RegisteredAt.ToString("g")</p>
+            </div>
+
+            <hr />
+
+            <div class="text-center my-4">
+                <h5 class="text-secondary fw-bold mb-3">Your Check-In QR Code</h5>
+
+                <!-- Container where QRCode.js renders the QR Canvas -->
+                <div class="d-flex justify-content-center my-3">
+                    <div id="qrcode" style="background:#ffffff; padding:20px; border:1px solid #dee2e6; border-radius:8px; line-height:0;"></div>
+                </div>
+
+                <p class="text-muted small mt-2">
+                    Present this QR code to the event administrator at the venue for instant attendance check-in.
+                </p>
+            </div>
+        </div>
+
+        <div class="card-footer bg-light text-center py-3">
+            <a asp-controller="Events" asp-action="Index" class="btn btn-outline-secondary me-2">Back to Events List</a>
+            <button onclick="window.print()" class="btn btn-primary fw-bold">Print Pass</button>
+        </div>
+    </div>
+</div>
+
+<!-- Load QRCode.js library via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Generate QR code inside #qrcode div using the registration token
+        new QRCode(document.getElementById("qrcode"), {
+            text: "@Model.QRCodeToken",
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    });
+</script>

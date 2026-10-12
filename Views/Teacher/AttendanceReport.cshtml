@@ -1,0 +1,131 @@
+@model SchoolEventManagement.Models.CourseAttendanceViewModel
+
+@{
+    ViewData["Title"] = "Attendance Report";
+}
+
+<div class="page-header">
+    <div>
+        <h3>Attendance Report</h3>
+        <div class="subtitle">Signed in as <strong>@ViewBag.TeacherName</strong>. Search a course you handle to see its full attendance report.</div>
+    </div>
+    <a asp-action="Logout" class="btn btn-outline-danger btn-sm">Teacher logout</a>
+</div>
+
+<form method="get" asp-action="AttendanceReport" class="row g-2 mb-3">
+    <div class="col-md-9">
+        <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search your courses (e.g. BSIT)" />
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Search</button>
+    </div>
+</form>
+
+@if (!Model.MyCourses.Any())
+{
+    <div class="alert alert-info">
+        No courses found. If you expected to see a course here, ask the administrator to assign it to your account.
+    </div>
+}
+else
+{
+    <div class="mb-4">
+        @foreach (var c in Model.MyCourses)
+        {
+            <a asp-action="AttendanceReport" asp-route-search="@Model.Search" asp-route-course="@c"
+               class="btn @(string.Equals(Model.SelectedCourse, c, StringComparison.OrdinalIgnoreCase) ? "btn-primary" : "btn-outline-primary") me-2 mb-2">
+                <i class="bi bi-journal-text me-1"></i>@c
+            </a>
+        }
+    </div>
+}
+
+@if (Model.SelectedCourse != null)
+{
+    int rate = Model.TotalRegistered == 0 ? 0 : (int)Math.Round(100.0 * Model.TotalAttended / Model.TotalRegistered);
+
+    <h4 class="mb-3">Course: <span class="text-primary">@Model.SelectedCourse</span></h4>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-2">
+            <div class="card bg-light border-info"><div class="card-body text-center">
+                <h6 class="text-uppercase text-muted">Registered</h6>
+                <h2 class="display-6 fw-bold text-info">@Model.TotalRegistered</h2>
+            </div></div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card bg-light border-success"><div class="card-body text-center">
+                <h6 class="text-uppercase text-muted">Checked in</h6>
+                <h2 class="display-6 fw-bold text-success">@Model.TotalAttended</h2>
+            </div></div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card bg-light border-secondary"><div class="card-body text-center">
+                <h6 class="text-uppercase text-muted">Not checked in</h6>
+                <h2 class="display-6 fw-bold text-secondary">@Model.TotalNotCheckedIn</h2>
+            </div></div>
+        </div>
+        <div class="col-md-3 mb-2">
+            <div class="card bg-light border-primary"><div class="card-body text-center">
+                <h6 class="text-uppercase text-muted">Attendance rate</h6>
+                <h2 class="display-6 fw-bold text-primary">@rate%</h2>
+            </div></div>
+        </div>
+    </div>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="alert alert-warning">No students from this course have registered for any event yet.</div>
+    }
+    else
+    {
+        foreach (var g in Model.Rows.GroupBy(r => new { r.EventId, r.EventTitle, r.EventDate }))
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">@g.Key.EventTitle</h5>
+                        <small>@g.Key.EventDate.ToString("MMMM dd, yyyy h:mm tt")</small>
+                    </div>
+                    <span class="badge bg-success">@g.Count(r => r.Attended) of @g.Count() checked in</span>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Section</th>
+                                <th>Status</th>
+                                <th>Checked-In Time</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in g)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-primary">@r.StudentId</td>
+                                    <td>@r.StudentName</td>
+                                    <td>@r.Section</td>
+                                    <td>
+                                        @if (r.Attended)
+                                        {
+                                            <span class="badge bg-success">Checked in</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Not checked in</span>
+                                        }
+                                    </td>
+                                    <td>@(r.CheckedInAt?.ToString("g") ?? "-")</td>
+                                    <td>@(r.Method ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+}

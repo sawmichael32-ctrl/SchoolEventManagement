@@ -1,0 +1,73 @@
+﻿@{
+    ViewData["Title"] = "Event Evaluation Portal";
+}
+
+<div class="container mt-5 mb-5" style="max-width: 600px;">
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-lg border-0" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h4 class="mb-0 fw-bold">Student Evaluation Portal</h4>
+            <small class="text-white-50">Enter your Registered Name/ID or Scan Ticket QR Code</small>
+        </div>
+
+        <div class="card-body p-4">
+            <form id="evalAccessForm" asp-controller="Evaluations" asp-action="VerifyAccess" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">1. Select Attended Event</label>
+                    <select id="eventIdSelect" name="eventId" class="form-select" required>
+                        <option value="">-- Choose Event --</option>
+                        @if (ViewBag.Events != null)
+                        {
+                            @foreach (var evt in (IEnumerable<SchoolEventManagement.Models.Event>)ViewBag.Events)
+                            {
+                                <option value="@evt.Id">@evt.Title (@evt.EventDate.ToString("d"))</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">2. Registered Student Name / ID or QR Code</label>
+                    <input type="text" id="studentIdInput" name="studentId" class="form-control" placeholder="e.g. mj or scan your QR code" required />
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2 mb-3">
+                    Proceed to Evaluation Form
+                </button>
+            </form>
+
+            <div class="text-center my-3">
+                <span class="text-muted fw-bold">--- OR SCAN TICKET QR CODE ---</span>
+            </div>
+
+            <!-- Integrated Camera / Image QR Reader -->
+            <div id="reader" style="width: 100%; border-radius: 8px; overflow: hidden;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        var eventSelect = document.getElementById("eventIdSelect");
+        if (!eventSelect.value) {
+            alert("Please select the event first before scanning your QR code!");
+            return;
+            }
+
+        // Fill the input with scanned token and submit automatically
+            document.getElementById("studentIdInput").value = decodedText;
+            html5QrcodeScanner.clear();
+            document.getElementById("evalAccessForm").submit();
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+</script>

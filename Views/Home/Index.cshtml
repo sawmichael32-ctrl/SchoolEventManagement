@@ -1,0 +1,414 @@
+﻿@model IEnumerable<SchoolEventManagement.Models.Event>
+
+@{
+    ViewData["Title"] = "Event Management Dashboard";
+    var eventsList = ViewBag.Events as List<SchoolEventManagement.Models.Event> ?? new List<SchoolEventManagement.Models.Event>();
+    var eventStats = ViewBag.EventStats as List<SchoolEventManagement.Models.EventAttendanceStat> ?? new List<SchoolEventManagement.Models.EventAttendanceStat>();
+    var recent = ViewBag.RecentCheckIns as List<SchoolEventManagement.Models.RecentCheckIn> ?? new List<SchoolEventManagement.Models.RecentCheckIn>();
+
+    // Updated to check EndDateTime so ongoing/upcoming events stay open
+    int upcomingCount = Model.Count(e => e.EndDateTime >= DateTime.Now);
+    int registeredCount = (int)(ViewBag.RegisteredCount ?? 0);
+    int checkedInCount = (int)(ViewBag.CheckedInCount ?? 0);
+    int evalCount = (int)(ViewBag.EvaluationCount ?? 0);
+    double avgRating = (double)(ViewBag.AvgRating ?? 0.0);
+
+    int attendanceRate = registeredCount > 0 ? (int)Math.Round(checkedInCount * 100.0 / registeredCount) : 0;
+    var nextEvent = Model.Where(e => e.EndDateTime >= DateTime.Now).OrderBy(e => e.EventDate).FirstOrDefault();
+
+    string CountdownText(DateTime d)
+    {
+        var diff = d - DateTime.Now;
+        if (diff.TotalDays >= 1) return $"in {(int)diff.TotalDays} day{((int)diff.TotalDays == 1 ? "" : "s")}";
+        if (diff.TotalHours >= 1) return $"in {(int)diff.TotalHours} hour{((int)diff.TotalHours == 1 ? "" : "s")}";
+        return "starting soon";
+    }
+
+    bool step1 = eventsList.Any();
+    bool step2 = registeredCount > 0;
+    bool step3 = checkedInCount > 0;
+    bool step4 = evalCount > 0;
+    bool allDone = step1 && step2 && step3 && step4;
+}
+
+<!-- HERO / GREETING -->
+<div class="hero-banner mb-4">
+    <div class="hero-text">
+        <div class="hero-date"><i class="bi bi-calendar-day me-1"></i>@DateTime.Now.ToString("dddd, MMMM d, yyyy")</div>
+        <h2 class="fw-semibold mb-1">Welcome back</h2>
+        @if (nextEvent != null)
+        {
+            <div class="hero-sub">
+                Next up: <strong>@nextEvent.Title</strong> &middot; @CountdownText(nextEvent.EventDate)
+                <span class="d-none d-md-inline">&middot; @nextEvent.Venue</span>
+            </div>
+        }
+        else
+        {
+            <div class="hero-sub">No upcoming events scheduled. Create one to start taking registrations.</div>
+        }
+    </div>
+    <div class="hero-actions">
+        <a asp-controller="Events" asp-action="Create" class="btn btn-gold"><i class="bi bi-plus-lg me-1"></i>New event</a>
+        <a asp-controller="Attendance" asp-action="Scanner" class="btn btn-hero-outline"><i class="bi bi-qr-code-scan me-1"></i>Open scanner</a>
+    </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-calendar-event"></i></div>
+            <div>
+                <div class="stat-label">Upcoming events</div>
+                <div class="stat-value">@upcomingCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon teal"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="stat-label">Registered</div>
+                <div class="stat-value">@registeredCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="bi bi-check2-square"></i></div>
+            <div>
+                <div class="stat-label">Checked in</div>
+                <div class="stat-value">@checkedInCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon gold"><i class="bi bi-star-fill"></i></div>
+            <div>
+                <div class="stat-label">Avg. rating (@evalCount)</div>
+                <div class="stat-value">@(evalCount > 0 ? avgRating.ToString("0.0") : "–")<span class="stat-unit">/ 5</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- LEFT COLUMN -->
+    <div class="col-lg-8">
+
+        <!-- UPCOMING EVENTS -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header-plain">
+                <span><i class="bi bi-calendar3"></i>Upcoming events</span>
+                <a asp-controller="Events" asp-action="Index" class="small text-decoration-none">View all <i class="bi bi-arrow-right ms-0"></i></a>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="empty-state">
+                        <div class="empty-icon"><i class="bi bi-calendar-plus"></i></div>
+                        <h6 class="fw-semibold mb-1">No events yet</h6>
+                        <p class="text-muted mb-3">Create your first event to start taking registrations and attendance.</p>
+                        <a asp-controller="Events" asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Create event</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-brand mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>When and where</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    // Event is open if current time hasn't passed EndDateTime yet
+                                    bool isOpen = item.EndDateTime >= DateTime.Now;
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@item.Title</div>
+                                            <span class="badge @(isOpen ? "badge-open" : "badge-ended")">@(isOpen ? "Open" : "Ended")</span>
+                                        </td>
+                                        <td>
+                                            <div>@item.EventDate.ToString("MMM d, yyyy, h:mm tt") - @item.EndDateTime.ToString("h:mm tt")</div>
+                                            <div class="text-muted small">@item.Venue</div>
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            @if (isOpen)
+                                            {
+                                                <form asp-controller="Events" asp-action="Register" method="post" class="d-inline">
+                                                    <input type="hidden" name="eventId" value="@item.Id" />
+                                                    <button type="submit" class="btn btn-primary btn-sm">Register</button>
+                                                </form>
+                                            }
+                                            <a asp-controller="Evaluations" asp-action="Create" asp-route-eventId="@item.Id" class="btn btn-outline-teal btn-sm">Evaluate</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- GETTING STARTED -->
+        @if (!allDone)
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header-plain">
+                    <span><i class="bi bi-rocket-takeoff"></i>Getting started</span>
+                    <span class="small text-muted">@(new[] { step1, step2, step3, step4 }.Count(s => s)) of 4 done</span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-xl-3">
+                            <div class="step-tile @(step1 ? "done" : "")">
+                                <div class="step-num">@if (step1) {
+                                <i class="bi bi-check-lg"></i>
+                            }
+                            else
+                            {
+
+                                <text>1</text>
+                            }
+</div>
+                            <div class="fw-semibold">Create an event</div>
+                            <div class="small text-muted">Add a title, date and venue.</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="step-tile @(step2 ? "done" : "")">
+                            <div class="step-num">@if (step2) {
+                            <i class="bi bi-check-lg"></i>
+                                                        } else
+                            {
+
+                                <text>2</text>
+                            }
+</div>
+                            <div class="fw-semibold">Register students</div>
+                            <div class="small text-muted">Each gets a QR ticket.</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="step-tile @(step3 ? "done" : "")">
+                            <div class="step-num">@if (step3) {
+                            <i class="bi bi-check-lg"></i>
+                                                        } else
+                            {
+
+                                <text>3</text>
+                            }
+</div>
+                            <div class="fw-semibold">Check in at the door</div>
+                            <div class="small text-muted">Scan QR or check in manually.</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="step-tile @(step4 ? "done" : "")">
+                            <div class="step-num">@if (step4) {
+                            <i class="bi bi-check-lg"></i>
+                                                        } else
+                            {
+
+                                <text>4</text>
+                            }
+</div>
+                            <div class="fw-semibold">Collect feedback</div>
+                            <div class="small text-muted">Students submit evaluations.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+                }
+
+        <!-- ATTENDANCE OVERVIEW -->
+        <div class="card shadow-sm">
+            <div class="card-header-plain">
+                <span><i class="bi bi-bar-chart-line"></i>Attendance overview</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-4 align-items-center">
+                    <div class="col-sm-4 text-center">
+                        <div class="donut" style="--pct:@(attendanceRate)">
+                            <div class="donut-inner">
+                                <div class="donut-value">@(attendanceRate)%</div>
+                                <div class="donut-label">attendance rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-8">
+                        @if (!eventStats.Any())
+                        {
+                            <div class="text-muted text-center py-3">Registered vs. checked-in numbers will show up here once you have events.</div>
+                        }
+                        else
+                        {
+                            <div class="legend mb-2">
+                                <span><i class="dot dot-blue"></i>Registered</span>
+                                <span><i class="dot dot-gold"></i>Checked in</span>
+                            </div>
+                            @foreach (var s in eventStats.TakeLast(5))
+                            {
+                                int regPct = 100;
+                                int inPct = s.Registered > 0 ? (int)Math.Round(s.CheckedIn * 100.0 / s.Registered) : 0;
+                                <div class="bar-row">
+                                    <div class="d-flex justify-content-between small">
+                                        <span class="fw-semibold text-truncate pe-2">@s.Title</span>
+                                        <span class="text-muted text-nowrap">@s.CheckedIn / @s.Registered</span>
+                                    </div>
+                                    <div class="bar-track">
+                                        <div class="bar-reg" style="width:@(regPct)%"></div>
+                                        <div class="bar-in" style="width:@(inPct)%"></div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-lg-4">
+
+        <!-- SCANNER / MANUAL CHECK-IN -->
+        <div class="card shadow-sm mb-4">
+            <ul class="nav scanner-tabs" id="scannerTabs">
+                <li class="nav-item flex-fill text-center">
+                    <button class="nav-link active w-100" id="qr-tab" data-bs-toggle="tab" data-bs-target="#qr-pane" type="button">
+                        <i class="bi bi-qr-code-scan me-1"></i>Scan QR
+                    </button>
+                </li>
+                <li class="nav-item flex-fill text-center">
+                    <button class="nav-link w-100" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button">
+                        <i class="bi bi-pencil-square me-1"></i>Manual
+                    </button>
+                </li>
+            </ul>
+            <div class="card-body">
+                <div id="result" class="alert d-none" role="alert"></div>
+
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="qr-pane">
+                        <div id="reader" style="width: 100%;"></div>
+                    </div>
+
+                    <div class="tab-pane fade" id="manual-pane">
+                        <form id="manualForm" class="p-2">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Select event</label>
+                                <select id="manualEventId" class="form-select">
+                                    <option value="">Choose an event</option>
+                                    @foreach (var evt in eventsList)
+                                    {
+                                        <option value="@evt.Id">@evt.Title</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Student ID or name</label>
+                                <input type="text" id="manualStudentId" class="form-control" placeholder="e.g. StudentUser" />
+                            </div>
+                            <button type="button" onclick="submitManualCheckIn()" class="btn btn-primary w-100 fw-semibold">Record attendance</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECENT CHECK-INS -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header-plain">
+                <span><i class="bi bi-clock-history"></i>Recent check-ins</span>
+            </div>
+            <div class="card-body p-0">
+                @if (!recent.Any())
+                {
+                    <div class="empty-mini">
+                        <i class="bi bi-person-check"></i>
+                        <div class="small text-muted">No check-ins yet. They'll appear here as students are scanned in.</div>
+                    </div>
+                }
+                else
+                {
+                    <ul class="activity-list">
+                        @foreach (var r in recent)
+                        {
+                            <li>
+                                <div class="avatar">@(string.IsNullOrEmpty(r.Student) ? "?" : r.Student.Substring(0, 1).ToUpper())</div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-truncate">@r.Student</div>
+                                    <div class="small text-muted text-truncate">@r.EventTitle</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="small">@r.Time.ToString("h:mm tt")</div>
+                                    <span class="badge badge-method">@r.Method</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        <!-- QUICK LINKS -->
+        <div class="card shadow-sm">
+            <div class="card-header-plain">
+                <span><i class="bi bi-lightning-charge"></i>Quick links</span>
+            </div>
+            <div class="card-body quick-links">
+                <a asp-controller="Events" asp-action="Index"><i class="bi bi-calendar3"></i>Manage events</a>
+                <a asp-controller="Attendance" asp-action="Scanner"><i class="bi bi-qr-code-scan"></i>Full-screen scanner</a>
+                <a asp-controller="Evaluations" asp-action="Access"><i class="bi bi-clipboard-check"></i>Evaluation portal</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+    function showResult(isSuccess, message) {
+        let res = document.getElementById('result');
+        res.classList.remove('d-none', 'alert-success', 'alert-warning', 'alert-danger');
+        res.classList.add(isSuccess ? 'alert-success' : 'alert-warning');
+        res.innerHTML = message;
+    }
+
+    function onScanSuccess(decodedText) {
+        fetch('/Attendance/RecordAttendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'qrToken=' + encodeURIComponent(decodedText)
+        })
+            .then(r => r.json())
+            .then(d => showResult(d.success, d.message))
+            .catch(() => showResult(false, 'Scanner connection error.'));
+    }
+
+    let scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    scanner.render(onScanSuccess);
+
+    function submitManualCheckIn() {
+        let eId = document.getElementById('manualEventId').value;
+        let sId = document.getElementById('manualStudentId').value;
+
+        fetch('/Attendance/RecordManualAttendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `eventId=${encodeURIComponent(eId)}&studentUserId=${encodeURIComponent(sId)}`
+        })
+            .then(r => r.json())
+            .then(d => showResult(d.success, d.message))
+            .catch(() => showResult(false, 'Check-in error.'));
+    }
+</script>

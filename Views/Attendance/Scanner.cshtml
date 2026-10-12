@@ -1,0 +1,118 @@
+@{
+    ViewData["Title"] = "Attendance Check-In";
+    var eventsList = ViewBag.Events as List<SchoolEventManagement.Models.Event> ?? new List<SchoolEventManagement.Models.Event>();
+}
+
+<div class="container mt-4" style="max-width: 650px;">
+    <h2 class="text-center mb-4">Event Attendance Check-In</h2>
+
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white">
+            <ul class="nav nav-tabs card-header-tabs id="attendanceTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active text-white fw-bold" id="qr-tab" data-bs-toggle="tab" data-bs-target="#qr-pane" type="button">📷 QR Scanner</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link text-white fw-bold" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-pane" type="button">✍️ Manual Check-In</button>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div id="result" class="alert d-none" role="alert"></div>
+
+            <div class="tab-content" id="attendanceTabContent">
+                
+                <!-- TAB 1: QR CODE CAMERA / FILE SCANNER -->
+                <div class="tab-pane fade show active" id="qr-pane" role="tabpanel">
+                    <div id="reader" style="width: 100%;"></div>
+                </div>
+
+                <!-- TAB 2: MANUAL CHECK-IN FORM -->
+                <div class="tab-pane fade" id="manual-pane" role="tabpanel">
+                    <form id="manualAttendanceForm" class="p-2">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Event</label>
+                            <select id="manualEventId" class="form-select" required>
+                                <option value="">-- Choose Event --</option>
+                                @foreach (var evt in eventsList)
+                                {
+                                    <option value="@evt.Id">@evt.Title (@evt.EventDate.ToString("d"))</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Student ID</label>
+                            <input type="text" id="manualStudentId" class="form-control" placeholder="Enter Student ID, e.g. 2026-10492" required />
+                        </div>
+
+                        <button type="button" onclick="submitManualAttendance()" class="btn btn-primary w-100 fw-bold">Record Attendance Manually</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
+<script>
+    function showNotification(isSuccess, message) {
+        let resultDiv = document.getElementById('result');
+        resultDiv.classList.remove('d-none', 'alert-success', 'alert-danger', 'alert-warning');
+        
+        if (isSuccess) {
+            resultDiv.classList.add('alert-success');
+            resultDiv.innerHTML = `<strong>Success!</strong> ${message}`;
+        } else {
+            resultDiv.classList.add('alert-warning');
+            resultDiv.innerHTML = `<strong>Notice:</strong> ${message}`;
+        }
+    }
+
+    // Handle QR Scan
+    function onScanSuccess(decodedText) {
+        fetch('/Attendance/RecordAttendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'qrToken=' + encodeURIComponent(decodedText) + '&verificationMethod=QR Code'
+        })
+        .then(response => response.json())
+        .then(data => showNotification(data.success, data.message))
+        .catch(() => showNotification(false, 'Failed to connect to server.'));
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner("reader", {
+        fps: 10,
+        qrbox: 250,
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    });
+    html5QrcodeScanner.render(onScanSuccess);
+
+    // Handle Manual Check-In Form
+    function submitManualAttendance() {
+        let eventId = document.getElementById('manualEventId').value;
+        let studentId = document.getElementById('manualStudentId').value;
+
+        if (!eventId || !studentId) {
+            showNotification(false, "Please select an event and enter the Student ID.");
+            return;
+        }
+
+        fetch('/Attendance/RecordManualAttendance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `eventId=${encodeURIComponent(eventId)}&studentUserId=${encodeURIComponent(studentId)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.success, data.message);
+            if(data.success) {
+                document.getElementById('manualStudentId').value = '';
+            }
+        })
+        .catch(() => showNotification(false, 'Error recording manual check-in.'));
+    }
+</script>

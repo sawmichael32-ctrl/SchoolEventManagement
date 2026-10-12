@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "Teacher Login";
+}
+
+<div class="container mt-5" style="max-width: 400px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center py-3">
+            <h4 class="mb-0 fw-bold">Teacher Access</h4>
+        </div>
+        <div class="card-body p-4">
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @ViewBag.Error
+                </div>
+            }
+
+            <form asp-action="Login" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Username</label>
+                    <input type="text" name="username" class="form-control" required autofocus />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Password</label>
+                    <input type="password" name="password" class="form-control" required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold">Login as Teacher</button>
+            </form>
+        </div>
+    </div>
+</div>

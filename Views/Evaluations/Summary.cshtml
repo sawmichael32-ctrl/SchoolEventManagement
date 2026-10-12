@@ -1,0 +1,94 @@
+﻿@model IEnumerable<SchoolEventManagement.Models.Evaluation>
+
+@{
+    ViewData["Title"] = "Evaluation Summary Report";
+}
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">Evaluation Report: @ViewBag.EventTitle</h2>
+            <p class="text-muted mb-0">Total Responses: <span class="badge bg-primary fs-6">@ViewBag.TotalEvaluations</span></p>
+        </div>
+        <a asp-controller="Events" asp-action="Index" class="btn btn-outline-secondary">Back to Events</a>
+    </div>
+
+    <!-- Rating Scorecard Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white text-center p-3">
+                <small class="text-white-50 text-uppercase fw-bold">Overall Rating</small>
+                <h1 class="display-5 fw-bold mb-0">@ViewBag.AvgOverall.ToString("0.0") <span class="fs-6">/ 5</span></h1>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white text-center p-3">
+                <small class="text-white-50 text-uppercase fw-bold">Content Quality</small>
+                <h1 class="display-5 fw-bold mb-0">@ViewBag.AvgContent.ToString("0.0") <span class="fs-6">/ 5</span></h1>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-dark text-center p-3">
+                <small class="text-dark-50 text-uppercase fw-bold">Speakers / Organizers</small>
+                <h1 class="display-5 fw-bold mb-0">@ViewBag.AvgSpeaker.ToString("0.0") <span class="fs-6">/ 5</span></h1>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white text-center p-3">
+                <small class="text-white-50 text-uppercase fw-bold">Venue &amp; Facilities</small>
+                <h1 class="display-5 fw-bold mb-0">@ViewBag.AvgVenue.ToString("0.0") <span class="fs-6">/ 5</span></h1>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Responses Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white fw-bold">
+            Submitted Feedback Entries
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Student ID / Name</th>
+                        <th class="text-center">Scores (Overall/Content/Speaker/Venue)</th>
+                        <th>Key Takeaways</th>
+                        <th>Suggestions</th>
+                        <th>Submitted At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No evaluation submissions found for this event yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int count = 1;
+                        @foreach (var eval in Model)
+                        {
+                            <tr>
+                                <td>@(count++)</td>
+                                <td class="fw-bold text-primary">@eval.UserId</td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@eval.OverallRating</span>
+                                    <span class="badge bg-secondary">@eval.ContentQuality</span>
+                                    <span class="badge bg-secondary">@eval.SpeakerRating</span>
+                                    <span class="badge bg-secondary">@eval.VenueRating</span>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(eval.KeyTakeaways) ? "-" : eval.KeyTakeaways)</td>
+                                <td>@(string.IsNullOrWhiteSpace(eval.Suggestions) ? "-" : eval.Suggestions)</td>
+                                <td>@eval.SubmittedAt.ToString("g")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

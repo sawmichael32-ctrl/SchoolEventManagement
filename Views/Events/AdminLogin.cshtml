@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Admin Login";
+}
+
+<div class="container mt-5" style="max-width: 400px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center py-3">
+            <h4 class="mb-0 fw-bold">Administrator Access</h4>
+        </div>
+        <div class="card-body p-4">
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger" role="alert">
+                    @ViewBag.Error
+                </div>
+            }
+
+            <form asp-action="AdminLogin" method="post">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Enter Admin Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Password..." required />
+                </div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold">Login as Admin</button>
+            </form>
+        </div>
+    </div>
+</div>

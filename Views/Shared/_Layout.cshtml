@@ -1,0 +1,83 @@
+﻿@{
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString();
+    string Active(string name) => ctrl == name ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Lyceum of Alabang</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/SchoolEventManagement.styles.css" asp-append-version="true" />
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark site-nav">
+            <div class="container">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-mortarboard-fill"></i>Lyceum of Alabang
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link @Active("Home")" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @Active("Events")" asp-area="" asp-controller="Events" asp-action="Index">Events</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @Active("Attendance")" asp-area="" asp-controller="Attendance" asp-action="Scanner">QR Scanner</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @Active("Evaluations")" asp-area="" asp-controller="Evaluations" asp-action="Access">Evaluation Portal</a>
+                        </li>
+                        @if (Context.Session.GetInt32("TeacherId") != null)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Teacher")" asp-area="" asp-controller="Teacher" asp-action="AttendanceReport">Attendance Report</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Teacher")" asp-area="" asp-controller="Teacher" asp-action="Login">Teacher Login</a>
+                            </li>
+                        }
+                        @if (Context.Session.GetString("IsAdmin") == "true")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @Active("TeacherAccounts")" asp-area="" asp-controller="TeacherAccounts" asp-action="Index">Manage Teachers</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container flex-grow-1 py-4">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="site-footer mt-auto">
+        <div class="container text-center py-3">
+            &copy; 2026 - Lyceum of Alabang Management Portal
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

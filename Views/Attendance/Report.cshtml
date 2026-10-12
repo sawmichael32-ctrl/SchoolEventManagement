@@ -1,0 +1,90 @@
+@model IEnumerable<SchoolEventManagement.Models.Attendance>
+
+@{
+    ViewData["Title"] = "Attendance Report";
+}
+
+<div class="container mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2>Attendance Log: <span class="text-primary">@ViewBag.EventTitle</span></h2>
+            <p class="text-muted mb-0">Venue: <strong>@ViewBag.Venue</strong> | Date: <strong>@ViewBag.EventDate.ToString("f")</strong></p>
+        </div>
+        <a asp-controller="Events" asp-action="Index" class="btn btn-outline-secondary">Back to Events</a>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-light border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase text-muted">Total Registered</h6>
+                    <h2 class="display-6 fw-bold text-info">@ViewBag.TotalRegistered</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-light border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase text-muted">Total Attended (Checked In)</h6>
+                    <h2 class="display-6 fw-bold text-success">@ViewBag.TotalAttended</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checked-In Student List -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Attended Participants</h5>
+            <span class="badge bg-success">@Model.Count() Checked In</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>School Level</th>
+                        <th>Grade / Year</th>
+                        <th>Program / Strand / Course</th>
+                        <th>Section</th>
+                        <th>Checked-In Time</th>
+                        <th>Verification Method</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-4 text-muted">
+                                No students have checked in yet for this event.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        int index = 1;
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@(index++)</td>
+                                <td class="fw-bold text-primary">@item.Registration?.UserId</td>
+                                <td>@item.Registration?.StudentName</td>
+                                <td>@item.Registration?.SchoolLevel</td>
+                                <td>@item.Registration?.GradeLevel</td>
+                                <td>@item.Registration?.Course</td>
+                                <td>@item.Registration?.Section</td>
+                                <td>@item.CheckedInAt.ToString("g")</td>
+                                <td>
+                                    <span class="badge bg-primary">@item.VerificationMethod</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

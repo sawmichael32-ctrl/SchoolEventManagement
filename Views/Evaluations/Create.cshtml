@@ -1,0 +1,89 @@
+﻿@model SchoolEventManagement.Models.Evaluation
+
+@{
+    ViewData["Title"] = "Student Event Feedback";
+}
+
+<div class="container mt-4 mb-5" style="max-width: 720px;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white p-3">
+            <h3 class="mb-1">Student Event Feedback Form</h3>
+            <p class="mb-0 text-white-50">Share your experience for: <strong>@ViewBag.EventTitle</strong></p>
+        </div>
+
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post">
+                <!-- Hidden fields to pass Event ID and Student ID to HTTP POST -->
+                <input type="hidden" asp-for="EventId" />
+                <input type="hidden" asp-for="UserId" />
+
+                <!-- 1. Rating Matrix -->
+                <h5 class="fw-bold mb-3 text-secondary">1. Event Rating Criteria</h5>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start">Category</th>
+                                <th>1 (Poor)</th>
+                                <th>2 (Fair)</th>
+                                <th>3 (Good)</th>
+                                <th>4 (Very Good)</th>
+                                <th>5 (Excellent)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-start fw-bold">Overall Event Experience</td>
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <td><input type="radio" asp-for="OverallRating" value="@i" required /></td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Quality of Content / Program</td>
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <td><input type="radio" asp-for="ContentQuality" value="@i" required /></td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Speakers / Organizers</td>
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <td><input type="radio" asp-for="SpeakerRating" value="@i" required /></td>
+                                }
+                            </tr>
+                            <tr>
+                                <td class="text-start fw-bold">Venue &amp; Facilities</td>
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <td><input type="radio" asp-for="VenueRating" value="@i" required /></td>
+                                }
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 2. Qualitative Feedback -->
+                <h5 class="fw-bold mb-3 text-secondary">2. Feedback &amp; Learnings</h5>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">What were your key takeaways or what did you learn from this event?</label>
+                    <textarea asp-for="KeyTakeaways" class="form-control" rows="3" placeholder="Mention key insights or memorable highlights..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">What suggestions do you have to improve future events?</label>
+                    <textarea asp-for="Suggestions" class="form-control" rows="3" placeholder="Suggestions regarding time, setup, topic choices, etc..."></textarea>
+                </div>
+
+                <!-- Submission Actions -->
+                <div class="d-flex justify-content-between align-items-center">
+                    <a asp-controller="Events" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">Submit Evaluation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
